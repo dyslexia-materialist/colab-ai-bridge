@@ -1,5 +1,7 @@
 # Colab AI Bridge
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dyslexia-materialist/colab-ai-bridge/blob/main/dist/Colab_AI_Bridge_v09_one_cell.ipynb)
+
 A single-cell Google Colab app with a clean, English-language AI workspace. The interface is **inspired by modern chat applications** but has its own design and branding.
 
 ![Desktop interface preview](docs/desktop-preview.png)
