@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Colab AI Bridge — Workspace</title>
+  <style>
+    :root {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --bg: #13151a; --sidebar: #101216; --panel: #1b1e25; --panel2: #22262e;
+      --border: #30343e; --text: #f4f4f7; --muted: #a3a8b5; --faint: #777e8d;
+      --brand: #a993ff; --brand2: #8e75ed; --user: #272b34; --success: #7ee5b5;
+      --shadow: 0 20px 80px rgba(0,0,0,.4);
+      --ring: rgba(169,147,255,.33);
+    }
+    html[data-theme="light"] {
+      --bg: #f9f9fb; --sidebar: #f1f1f4; --panel: #fff; --panel2: #f4f3f9;
+      --border: #e1e1e8; --text: #1a1b23; --muted: #676d7a; --faint: #858a94;
+      --brand: #7055c7; --brand2: #6a4bd0; --user: #eae9f1; --success: #157c56;
+      --shadow: 0 18px 65px rgba(40,30,70,.14); --ring: rgba(112,85,199,.18);
+    }
+    * { box-sizing:border-box; }
+    html,body { margin:0; height:100%; }
+    body { background:var(--bg); color:var(--text); font-size:14px; overflow:hidden; }
+    button,input,textarea,select { font:inherit; }
+    button { cursor:pointer; }
+    button:disabled { opacity:.46; cursor:not-allowed; }
+    button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible { outline:3px solid var(--ring); outline-offset:2px; }
+    a { color:var(--brand); text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    svg { width:19px; height:19px; fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; stroke-width:1.8; flex:none; }
+    .shell { display:flex; height:100dvh; width:100%; }
+    .sidebar { width:274px; flex:0 0 274px; background:var(--sidebar); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:19px 12px 13px; z-index:20; }
+    .brand { padding:2px 10px 26px; display:flex; align-items:center; gap:11px; font-weight:750; font-size:16px; letter-spacing:-.4px; }
+    .brand-logo { width:32px; height:32px; display:grid; place-items:center; border-radius:11px; background:linear-gradient(145deg,#b29dff,#715dc6); color:#fff; box-shadow:0 4px 20px rgba(147,118,240,.3); }
+    .brand-logo svg { width:20px;height:20px; }
+    .sidebar-action { display:flex; align-items:center; gap:11px; width:100%; text-align:left; border-radius:11px; border:1px solid var(--border); padding:12px 12px; color:var(--text); background:var(--panel); font-weight:650; }
+    .sidebar-action svg:last-child { margin-left:auto; color:var(--muted); width:15px; }
+    .sidebar-action:hover,.side-link:hover,.conversation:hover { background:var(--panel2); }
+    .section-label { font-size:11px; letter-spacing:1.2px; text-transform:uppercase; color:var(--faint); font-weight:750; margin:26px 13px 11px; }
+    .nav-list { display:flex; flex-direction:column; gap:3px; }
+    .side-link { width:100%; display:flex; align-items:center; gap:12px; text-align:left; border:0; border-radius:10px; padding:11px 12px; background:transparent; color:var(--muted); font-weight:560; }
+    .side-link.active { background:var(--panel2); color:var(--text); font-weight:675; }
+    .side-link.active svg { color:var(--brand); }
+    .history-head { display:flex; align-items:center; justify-content:space-between; margin-right:6px; }
+    .text-icon { width:25px; height:25px; border:none; background:transparent; color:var(--muted); border-radius:7px; display:grid; place-items:center; }
+    .text-icon:hover { color:var(--text); background:var(--panel2); }
+    .text-icon svg { width:15px; height:15px; }
+    .history-list { flex:1; overflow:auto; min-height:55px; margin-top:2px; scrollbar-width:thin; }
+    .conversation { display:flex; align-items:center; gap:4px; border-radius:9px; min-height:38px; margin:2px 2px; }
+    .conversation.selected { background:var(--panel2); }
+    .conversation > button:first-child { flex:1; min-width:0; padding:10px 7px 10px 10px; background:transparent; border:none; color:var(--muted); text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .conversation.selected > button:first-child { color:var(--text); }
+    .conversation .delete { border:none; background:transparent; color:var(--faint); border-radius:7px; width:28px;height:28px; margin-right:4px; opacity:0; }
+    .conversation:hover .delete,.conversation:focus-within .delete { opacity:1; }
+    .conversation .delete svg { width:14px;height:14px; }
+    .history-empty { padding:9px 13px; font-size:12px; color:var(--faint); line-height:1.65; }
+    .sidebar-foot { border-top:1px solid var(--border); padding:14px 4px 0; display:grid; gap:4px; }
+    .foot-link { border:none; background:transparent; color:var(--muted); display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:9px 8px; border-radius:8px; }
+    .foot-link:hover { color:var(--text); background:var(--panel2); }
+    .foot-link svg { width:17px;height:17px; }
+    .foot-note { color:var(--faint); font-size:10px; padding:10px 8px 2px; line-height:1.4; }
+    .main { display:flex; flex:1; min-width:0; flex-direction:column; position:relative; }
+    .topbar { height:70px; flex:0 0 70px; display:flex; align-items:center; justify-content:space-between; padding:0 30px; border-bottom:1px solid var(--border); gap:10px; }
+    .top-left,.top-right { display:flex; align-items:center; gap:12px; min-width:0; }
+    .mobile-menu { display:none !important; }
+    .view-name { font-size:15px; font-weight:720; letter-spacing:-.2px; white-space:nowrap; }
+    .version-pill { border:1px solid var(--border); padding:4px 9px; border-radius:20px; color:var(--faint); font-size:11px; }
+    .model-chip { display:flex; align-items:center; gap:8px; border:1px solid var(--border); background:var(--panel); padding:9px 12px; color:var(--muted); border-radius:11px; max-width:310px; }
+    .model-chip:hover { border-color:var(--brand); }
+    .chip-label { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; }
+    .status-dot { width:7px; height:7px; flex:none; border-radius:100%; background:var(--faint); }
+    .status-dot.ready { background:var(--success); box-shadow:0 0 0 3px rgba(126,229,181,.10); }
+    .status-dot.loading { background:#f4c776; animation:blink 1.2s infinite; }
+    .status-dot.error { background:#fb838c; }
+    @keyframes blink { 50% { opacity:.35; } }
+    .icon-btn { width:38px; height:38px; display:grid; place-items:center; border-radius:10px; border:1px solid var(--border); background:var(--panel); color:var(--muted); }
+    .icon-btn:hover { color:var(--text); }
+    .view { flex:1; min-height:0; display:none; overflow:auto; }
+    .view.active { display:flex; flex-direction:column; }
+    .chat-feed { flex:1; overflow:auto; scrollbar-width:thin; }
+    .messages { max-width:825px; margin:0 auto; padding:26px 30px 24px; display:flex; flex-direction:column; gap:24px; }
+    .welcome { min-height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:42px 22px 20px; }
+    .welcome-icon { display:grid; place-items:center; width:62px;height:62px;border-radius:22px; background:radial-gradient(circle at 15% 20%,#bbabff,#715ac7); color:#fff; margin-bottom:25px; }
+    .welcome-icon svg { width:31px;height:31px; }
+    .welcome h1 { margin:0; font-size:clamp(26px,3.3vw,36px); letter-spacing:-1.25px; font-weight:750; }
+    .welcome p { color:var(--muted); font-size:14px; line-height:1.7; margin:13px 0 27px; }
+    .suggestions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); max-width:550px; width:100%; gap:10px; }
+    .suggestion { background:var(--panel); color:var(--muted); padding:14px 15px; border:1px solid var(--border); text-align:left; border-radius:12px; min-height:63px; line-height:1.4; font-size:12px; }
+    .suggestion:hover { border-color:var(--brand); color:var(--text); }
+    .suggestion strong { display:block; color:var(--text); font-size:13px; margin-bottom:4px; }
+    .message { display:flex; gap:14px; width:100%; align-items:flex-start; }
+    .message.user { flex-direction:row-reverse; }
+    .message .avatar { width:31px;height:31px;flex:none;border-radius:11px;display:grid;place-items:center;background:var(--panel2);font-size:11px;font-weight:700;color:var(--brand); }
+    .message.user .avatar { background:var(--user);color:var(--text); }
+    .msg-content { max-width:min(94%,690px); color:var(--text); line-height:1.8; word-break:break-word; padding-top:3px; font-size:14px; white-space:pre-wrap; }
+    .message.user .msg-content { background:var(--user); border-radius:17px; padding:10px 16px; max-width:min(85%,590px); }
+    .msg-content pre { white-space:pre; overflow:auto; background:var(--sidebar);border:1px solid var(--border);padding:15px;border-radius:10px;line-height:1.6;max-width:100%; }
+    .msg-content code { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; }
+    .typing::after { content:'● ● ●'; font-size:11px; letter-spacing:3px; color:var(--brand); animation:blink 1.1s infinite; }
+    .composer-region { flex:none; padding:12px 28px 23px; }
+    .composer-wrap { width:min(805px,100%); margin:0 auto; }
+    .inline-note { padding:9px 13px; margin:0 0 10px; font-size:12px; border-radius:9px; color:#f2cb8d; background:rgba(204,140,61,.13); border:1px solid rgba(204,140,61,.3); }
+    .inline-note[hidden] { display:none; }
+    .composer { background:var(--panel); border:1px solid var(--border); border-radius:19px; padding:12px 13px; box-shadow:0 9px 40px rgba(0,0,0,.08); }
+    .composer:focus-within { border-color:var(--brand); box-shadow:0 0 0 3px var(--ring); }
+    .composer textarea { display:block; width:100%; min-height:44px; max-height:170px; resize:none; background:transparent; border:none; outline:none; color:var(--text); padding:8px 10px; font-size:14px; line-height:1.5; }
+    .composer textarea::placeholder, input::placeholder, .form-field textarea::placeholder { color:var(--faint); }
+    .composer-tools { display:flex; justify-content:space-between; align-items:center; padding:2px 3px 0 7px; }
+    .composer-hint { color:var(--faint);font-size:11px; }
+    .send-btn { width:37px;height:37px;border:0;border-radius:11px;display:grid;place-items:center;background:var(--brand);color:#140d2e; }
+    .send-btn:hover { background:#bbaaef; }
+    .composer-note { text-align:center; font-size:10.5px;color:var(--faint);margin:11px 0 0; }
+    .workspace { width:min(1100px,100%);margin:0 auto;padding:42px 38px 70px; }
+    .eyebrow { text-transform:uppercase;letter-spacing:1.65px;color:var(--brand);font-size:11px;font-weight:750;margin-bottom:10px; }
+    .workspace h1 { font-size:31px;letter-spacing:-.9px;line-height:1.2;margin:0 0 9px;font-weight:750; }
+    .lead { color:var(--muted);line-height:1.7;margin:0 0 30px;max-width:640px; }
+    .workspace-grid { display:grid; grid-template-columns:minmax(0,1.03fr) minmax(0,.97fr); gap:19px; }
+    .surface { background:var(--panel);border:1px solid var(--border);border-radius:17px;padding:23px;min-width:0; }
+    .surface h2 { font-size:15px;letter-spacing:-.2px;margin:0 0 20px;display:flex;align-items:center;gap:9px; }
+    .form-field { display:grid;gap:8px;margin-bottom:18px; }
+    .form-field label { font-size:12px;color:var(--muted);font-weight:600; }
+    .form-field input,.form-field textarea,.form-field select { width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px 13px;min-width:0; }
+    .form-field textarea { resize:vertical;min-height:112px;line-height:1.55; }
+    .two-cols { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px; }
+    .primary-btn { border:0;background:var(--brand);color:#1b103d;font-weight:750;padding:12px 17px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;gap:8px; }
+    .primary-btn:hover { background:#b7a6ff; }
+    .primary-btn svg { width:17px;height:17px; }
+    .outline-btn { color:var(--text);border:1px solid var(--border);background:var(--panel2);border-radius:10px; padding:11px 14px;font-weight:650;display:inline-flex;align-items:center;gap:8px;justify-content:center; }
+    .outline-btn:hover { border-color:var(--brand); }
+    .hint { color:var(--muted);font-size:12px;line-height:1.6; }
+    .result-placeholder { min-height:300px;background:var(--bg);border:1px dashed var(--border);border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;text-align:center;color:var(--faint);padding:30px; }
+    .result-placeholder svg { width:40px;height:40px;color:var(--faint);opacity:.6; }
+    .result-image { display:block;max-width:100%;max-height:580px;object-fit:contain;margin:0 auto;border-radius:11px; }
+    .result-image[hidden],.result-placeholder[hidden],.download-link[hidden] { display:none; }
+    .download-link { display:inline-flex;align-items:center;justify-content:center;margin-top:16px;padding:11px 14px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--text);font-weight:600; }
+    .download-link:hover { border-color:var(--brand);text-decoration:none; }
+    .dropzone { display:block;border:1.5px dashed var(--border);border-radius:13px;background:var(--bg);padding:22px;text-align:center;cursor:pointer;transition:border-color .15s; }
+    .dropzone:hover,.dropzone.dragging { border-color:var(--brand); }
+    .dropzone svg { width:28px;height:28px;color:var(--brand); }
+    .dropzone strong { display:block;margin:8px 0 5px; }
+    .dropzone small { color:var(--muted); }
+    .dropzone input { display:none; }
+    .thumbnail-strip { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 18px; }
+    .thumbnail { border-radius:9px;aspect-ratio:4/3;object-fit:cover;width:100%;border:1px solid var(--border); }
+    .upload-preview { width:100%;max-height:260px;object-fit:contain;margin:12px 0 0;border-radius:10px; }
+    .range-row { display:flex;justify-content:space-between;align-items:center; }
+    input[type="range"] { width:100%;accent-color:var(--brand); }
+    .notice { margin-top:18px;border-radius:11px;background:var(--panel2);border:1px solid var(--border);padding:13px 14px;color:var(--muted);font-size:12px;line-height:1.55; }
+    .feedback { font-size:12px;color:var(--muted);min-height:20px;margin-top:12px;line-height:1.6;overflow-wrap:anywhere; }
+    .feedback.error { color:#f3999f; }
+    .feedback.success { color:var(--success); }
+    .overlay { position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:35;display:none; }
+    .overlay.open { display:block; }
+    .drawer { position:fixed;right:0;top:0;height:100dvh;max-width:100%;width:435px;background:var(--sidebar);border-left:1px solid var(--border);box-shadow:var(--shadow);z-index:40;transform:translateX(104%);transition:transform .24s ease;display:flex;flex-direction:column; }
+    .drawer.open { transform:translateX(0); }
+    .drawer-head { display:flex;justify-content:space-between;align-items:center;padding:24px 25px 18px;border-bottom:1px solid var(--border); }
+    .drawer-head h2 { margin:0;font-size:18px;letter-spacing:-.4px; }
+    .drawer-body { padding:24px;overflow:auto;flex:1; }
+    .drawer-kpi { display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 22px; }
+    .kpi { border:1px solid var(--border);border-radius:11px;background:var(--panel);padding:12px; }
+    .kpi small { display:block;font-size:10px;color:var(--faint);margin-bottom:6px; }
+    .kpi strong { display:block;font-size:12px;overflow-wrap:anywhere; }
+    .progress-box { border-radius:11px;border:1px solid var(--border);background:var(--panel);padding:12px 14px;color:var(--muted);line-height:1.6;font-size:12px;margin:14px 0;overflow-wrap:anywhere; }
+    .progress-box strong { display:block;color:var(--text);font-size:13px;margin-bottom:3px; }
+    .drawer .form-field { margin-bottom:15px; }
+    .drawer-footer { border-top:1px solid var(--border);padding:14px 24px;color:var(--faint);font-size:11px;line-height:1.5; }
+    .toast { position:fixed;right:23px;bottom:22px;z-index:70;max-width:380px;padding:13px 17px;background:var(--panel2);border:1px solid var(--border);border-radius:11px;box-shadow:var(--shadow);color:var(--text);font-size:12px;display:none; }
+    .toast.show { display:block; }
+    .mobile-scrim { display:none; }
+    [hidden] { display:none !important; }
+    @media (max-width:980px) { .workspace-grid {grid-template-columns:1fr;} .workspace {max-width:720px;} .topbar {padding:0 20px;} }
+    @media (max-width:760px) {
+      .sidebar {position:fixed;left:0;top:0;bottom:0;transform:translateX(-101%);transition:transform .2s;width:282px;}
+      .sidebar.mobile-open {transform:translateX(0);}
+      .mobile-scrim.open { display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:15; }
+      .mobile-menu { display:grid !important; }
+      .topbar {height:62px;flex-basis:62px;padding:0 14px;}
+      .version-pill {display:none;} .model-chip {max-width:150px;padding:8px;} .view-name {font-size:14px;}
+      .top-left,.top-right {gap:7px;} .messages {padding:18px 16px;} .welcome {padding:30px 16px;} .suggestions {grid-template-columns:1fr;}
+      .composer-region {padding:9px 12px 13px;} .workspace {padding:28px 16px 50px;}
+      .workspace h1 {font-size:27px;} .surface {padding:17px;} .drawer {width:100%;}
+      .two-cols {grid-template-columns:1fr;} .conversation .delete { opacity:1; }
+    }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after {animation-duration:.01ms!important;transition-duration:.01ms!important;} }
+  </style>
+</head>
+<body>
+<!-- Inline icons keep the interface independent of external CDNs. -->
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 1.9 7.1L21 11l-7.1 1.9L12 20l-1.9-7.1L3 11l7.1-1.9L12 2Z"/><path d="M19 18v4M17 20h4"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11.3a8.7 8.7 0 0 1-9 8.5 10 10 0 0 1-3.4-.6L3 21l1.7-5.4A8.7 8.7 0 1 1 21 11.3Z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="m12 20 7-7 2 2-7 7-4 1 2-3Z"/><path d="M19 13 7 1 2 6l12 12M5 9l10-10"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10Z"/><path d="M9 21v-7h6v7"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="17" r="2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="m4 12 16-8-4 16-4-7-8-1Z"/><path d="m12 13 8-9"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M5 5 19 19M19 5 5 19"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 3h4M6 7l1 14h10l1-14M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m-5 5 5-5 5 5M4 16v5h16v-5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 15.5A9 9 0 0 1 8.5 4a9 9 0 1 0 11.5 11.5Z"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M9 19c-5 .8-5-3-7-4m14 6v-3.2c0-1 .3-1.6.9-2.1 3.1-.4 5.1-2.3 5.1-5.4 0-1.4-.5-2.5-1.5-3.4.1-.8 0-1.7-.5-2.8-1.2 0-2.1.5-3 1.2-1.6-.5-3.4-.5-5 0-.9-.7-1.8-1.2-3-1.2-.5 1.1-.6 2-.5 2.8-1 .9-1.5 2-1.5 3.4 0 3.1 2 5 5.1 5.4.6.5.9 1.1.9 2.1V21"/></symbol>
+</svg>
+<div class="mobile-scrim" id="mobileScrim"></div>
+<div class="shell">
+  <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    <div class="brand"><div class="brand-logo"><svg><use href="#i-spark"/></svg></div> Colab AI Bridge</div>
+    <button id="newChatBtn" class="sidebar-action"><svg><use href="#i-plus"/></svg> New conversation <svg><use href="#i-chat"/></svg></button>
+    <div class="section-label">Workspace</div>
+    <nav class="nav-list">
+      <button class="side-link active" data-view="chat"><svg><use href="#i-chat"/></svg> Chat</button>
+      <button class="side-link" data-view="image"><svg><use href="#i-image"/></svg> Image generation</button>
+      <button class="side-link" data-view="img2img"><svg><use href="#i-edit"/></svg> Image editing</button>
+      <button class="side-link" data-view="estate"><svg><use href="#i-home"/></svg> Real estate cover</button>
+    </nav>
+    <div class="history-head"><div class="section-label">Recent chats</div><button class="text-icon" id="exportChatsBtn" title="Export chats as JSON" aria-label="Export chats"><svg><use href="#i-download"/></svg></button></div>
+    <div class="history-list" id="historyList"><p class="history-empty">Your conversations will appear here.</p></div>
+    <div class="sidebar-foot">
+      <button class="foot-link" id="settingsSide"><svg><use href="#i-settings"/></svg> Model settings</button>
+      <a class="foot-link" href="/docs" target="_blank" rel="noopener"><svg><use href="#i-github"/></svg> API documentation</a>
+      <div class="foot-note">Chats are saved in this browser only. No cloud chat history.</div>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="top-left">
+        <button class="icon-btn mobile-menu" id="openMenu" aria-label="Open menu"><svg><use href="#i-menu"/></svg></button>
+        <span id="viewTitle" class="view-name">Chat</span><span class="version-pill">BETA v0.9</span>
+      </div>
+      <div class="top-right">
+        <button class="model-chip" id="modelChip" title="Configure active model" aria-label="Configure active model"><span class="status-dot" id="headerDot"></span><span class="chip-label" id="modelLabel">No model loaded</span><svg style="width:13px;height:13px"><use href="#i-settings"/></svg></button>
+        <button class="icon-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle light or dark theme"><svg><use href="#i-moon"/></svg></button>
+      </div>
+    </header>
+    <section class="view active" id="view-chat" aria-label="AI chat">
+      <div class="chat-feed" id="chatFeed">
+        <div class="welcome" id="welcome">
+          <div class="welcome-icon"><svg><use href="#i-spark"/></svg></div>
+          <h1>What would you like to explore?</h1>
+          <p>Connect a Hugging Face model and start a conversation.<br>Run your own AI, directly from Google Colab.</p>
+          <div class="suggestions">
+            <button class="suggestion" data-prompt="Explain how neural networks work in simple terms."><strong>Learn something new</strong>Explain neural networks simply</button>
+            <button class="suggestion" data-prompt="Help me write a professional email in English."><strong>Write with AI</strong>Draft a professional email</button>
+            <button class="suggestion" data-prompt="Explain the difference between REST and WebSocket APIs."><strong>Build and code</strong>Explore API architectures</button>
+            <button class="suggestion" data-prompt="I want to practice English conversation at B1 level."><strong>Practice English</strong>Start a B1 conversation</button>
+          </div>
+        </div>
+        <div class="messages" id="messages" hidden></div>
+      </div>
+      <div class="composer-region">
+        <div class="composer-wrap">
+          <div class="inline-note" id="chatWarning" hidden></div>
+          <div class="composer">
+            <textarea id="chatInput" aria-label="Message" rows="1" maxlength="4000" placeholder="Message your local AI..."></textarea>
+            <div class="composer-tools"><span class="composer-hint">Enter to send · Shift + Enter for a new line</span><button class="send-btn" id="sendBtn" title="Send message" aria-label="Send message"><svg><use href="#i-send"/></svg></button></div>
+          </div>
+          <p class="composer-note">Your model runs in Colab. Responses may be inaccurate.</p>
+        </div>
+      </div>
+    </section>
+    <section class="view" id="view-image" aria-label="Image generation">
+      <div class="workspace">
+        <div class="eyebrow">Creative studio</div><h1>Image generation</h1>
+        <p class="lead">Turn a written idea into an image. Load a compatible Diffusers text-to-image model to get started.</p>
+        <div class="workspace-grid">
+          <div class="surface"><h2><svg><use href="#i-spark"/></svg> Create an image</h2>
+            <div class="form-field"><label for="imagePrompt">Prompt</label><textarea id="imagePrompt" maxlength="2000" placeholder="A sunlit modern living room with natural oak furniture, architectural photography..."></textarea></div>
+            <div class="two-cols">
+              <div class="form-field"><label for="imageSize">Resolution</label><select id="imageSize"><option value="512">512 × 512</option><option value="768">768 × 768</option><option value="1024">1024 × 1024</option></select></div>
+              <div class="form-field"><label for="imageSteps">Inference steps</label><input id="imageSteps" type="number" min="1" max="50" value="4"></div>
+              <div class="form-field"><label for="imageGuidance">Guidance scale</label><input id="imageGuidance" type="number" min="0" max="20" step="0.5" value="0"></div>
+              <div class="form-field"><label for="imageSeed">Seed (optional)</label><input id="imageSeed" type="number" min="0" max="4294967295" placeholder="Random"></div>
+            </div>
+            <button id="generateImageBtn" class="primary-btn"><svg><use href="#i-spark"/></svg> Generate image</button>
+            <div class="feedback" id="imageFeedback" role="status"></div>
+            <div class="notice">Image quality and parameters depend on the model. SDXL Turbo typically uses fewer steps and guidance 0.</div>
+          </div>
+          <div class="surface"><h2><svg><use href="#i-image"/></svg> Generated image</h2>
+            <div class="result-placeholder" id="imagePlaceholder"><svg><use href="#i-image"/></svg><div>Your image will appear here</div></div>
+            <img id="imageResult" class="result-image" alt="Generated result" hidden>
+            <a id="imageDownload" class="download-link" download="colab-ai-generated.png" hidden><svg><use href="#i-download"/></svg> &nbsp;Download PNG</a>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="view" id="view-img2img" aria-label="Image editing">
+      <div class="workspace">
+        <div class="eyebrow">Creative studio</div><h1>Image editing</h1>
+        <p class="lead">Upload a reference photo and describe what you want to change. Requires a Diffusers image-to-image pipeline.</p>
+        <div class="workspace-grid">
+          <div class="surface"><h2><svg><use href="#i-edit"/></svg> Edit a photo</h2>
+            <label class="dropzone" id="sourceDrop"><input id="sourceFile" type="file" accept="image/png,image/jpeg,image/webp"><svg><use href="#i-upload"/></svg><strong>Drop a photo or click to browse</strong><small>PNG · JPEG · WEBP · Max 10 MB</small></label>
+            <img id="sourcePreview" class="upload-preview" alt="Selected source" hidden>
+            <div class="form-field" style="margin-top:19px"><label for="editPrompt">Editing instructions</label><textarea id="editPrompt" maxlength="2000" placeholder="Enhance the natural lighting and color balance while preserving the room layout and existing furniture."></textarea></div>
+            <div class="form-field"><div class="range-row"><label for="editStrength">Transformation strength</label><strong id="editStrengthValue">0.70</strong></div><input id="editStrength" type="range" min="0.1" max="1" step="0.05" value="0.7"><div class="hint">Lower preserves more of the source; higher changes more.</div></div>
+            <div class="two-cols">
+              <div class="form-field"><label for="editSize">Resolution</label><select id="editSize"><option value="512">512 × 512</option><option value="768">768 × 768</option><option value="1024">1024 × 1024</option></select></div>
+              <div class="form-field"><label for="editSteps">Inference steps</label><input id="editSteps" type="number" min="1" max="50" value="4"></div>
+              <div class="form-field"><label for="editGuidance">Guidance scale</label><input id="editGuidance" type="number" min="0" max="20" step="0.5" value="0"></div>
+              <div class="form-field"><label for="editSeed">Seed (optional)</label><input id="editSeed" type="number" min="0" max="4294967295" placeholder="Random"></div>
+            </div>
+            <button class="primary-btn" id="editBtn"><svg><use href="#i-spark"/></svg> Edit image</button><div class="feedback" id="editFeedback" role="status"></div>
+          </div>
+          <div class="surface"><h2><svg><use href="#i-image"/></svg> Edited result</h2>
+            <div class="result-placeholder" id="editPlaceholder"><svg><use href="#i-image"/></svg><div>Your edited photo will appear here</div></div>
+            <img id="editResult" class="result-image" alt="Edited result" hidden>
+            <a id="editDownload" class="download-link" download="colab-ai-edited.png" hidden><svg><use href="#i-download"/></svg> &nbsp;Download PNG</a>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="view" id="view-estate" aria-label="Real estate cover designer">
+      <div class="workspace">
+        <div class="eyebrow">Listing studio</div><h1>Real estate cover</h1>
+        <p class="lead">Select 3–6 authentic property photos, describe the listing in your own words, and create a polished cover image. Original photos remain recognizable.</p>
+        <div class="workspace-grid">
+          <div class="surface"><h2><svg><use href="#i-home"/></svg> Your listing</h2>
+            <label class="dropzone" id="estateDrop"><input id="estateFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple><svg><use href="#i-upload"/></svg><strong>Upload property photos</strong><small>Choose 3–6 photos · 12 MB max per photo</small></label>
+            <div class="thumbnail-strip" id="estateThumbnails" hidden></div>
+            <div class="feedback" id="estateFilesInfo" role="status">No photos selected.</div>
+            <div class="form-field"><label for="estatePrompt">Listing details / creative brief</label><textarea id="estatePrompt" maxlength="3000" rows="7" placeholder="For sale · Premium navy design&#10;Title: Modern 3-bedroom apartment in Selçuklu&#10;Price: ₺4,250,000&#10;Location: Konya / Selçuklu&#10;Features: 145 m² · Elevator · Ensuite bathroom"></textarea></div>
+            <div class="two-cols">
+              <div class="form-field"><label for="estateFormat">Format</label><select id="estateFormat"><option value="story">Instagram Story · 1080 × 1920</option><option value="post">Portrait Post · 1080 × 1350</option><option value="square">Square · 1080 × 1080</option><option value="landscape">Landscape · 1200 × 675</option></select></div>
+              <div class="form-field"><label for="estateStyle">Visual style</label><select id="estateStyle"><option value="auto">Match my prompt</option><option value="navy">Corporate navy</option><option value="black">Premium black</option><option value="blue">Modern blue</option><option value="light">Minimal light</option></select></div>
+            </div>
+            <div class="form-field"><label for="estateMain">Main photo</label><select id="estateMain"><option value="0">Photo 1</option></select></div>
+            <button class="primary-btn" id="estateBtn"><svg><use href="#i-spark"/></svg> Create listing cover</button>
+            <div class="feedback" id="estateFeedback" role="status"></div>
+            <div class="notice">This tool composes existing photos into a graphic layout. It does not invent rooms or alter structural details. Listing information is extracted from your prompt.</div>
+          </div>
+          <div class="surface"><h2><svg><use href="#i-image"/></svg> Cover preview</h2>
+            <div class="result-placeholder" id="estatePlaceholder"><svg><use href="#i-home"/></svg><div>Your listing cover will appear here</div></div>
+            <img id="estateResult" class="result-image" alt="Generated listing cover" hidden>
+            <a id="estateDownload" class="download-link" download="real-estate-cover.png" hidden><svg><use href="#i-download"/></svg> &nbsp;Download cover</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="modelDrawer" aria-label="Model configuration" aria-hidden="true">
+  <div class="drawer-head"><h2>Model configuration</h2><button class="icon-btn" id="closeDrawer" aria-label="Close model configuration"><svg><use href="#i-x"/></svg></button></div>
+  <div class="drawer-body">
+    <div class="drawer-kpi"><div class="kpi"><small>GPU</small><strong id="gpuName">Checking…</strong></div><div class="kpi"><small>Free VRAM</small><strong id="vramLabel">—</strong></div></div>
+    <div class="form-field"><label for="modelId">Hugging Face repository</label><input id="modelId" autocomplete="off" spellcheck="false" value="Qwen/Qwen2.5-0.5B-Instruct" placeholder="org/model-name"></div>
+    <div class="two-cols">
+      <div class="form-field"><label for="modelTask">Model task</label><select id="modelTask"><option value="chat">Chat</option><option value="image">Text-to-Image</option><option value="image_to_image">Image-to-Image</option></select></div>
+      <div class="form-field"><label for="modelEngine">Engine</label><select id="modelEngine"><option value="auto">Auto detect</option><option value="transformers">Transformers</option><option value="llama.cpp">GGUF / llama.cpp</option><option value="diffusers">Diffusers</option></select></div>
+    </div>
+    <button id="inspectBtn" class="outline-btn" style="width:100%;margin-bottom:10px"><svg><use href="#i-settings"/></svg> Inspect repository files</button>
+    <div class="feedback" id="inspectFeedback" role="status">Inspect a repository to see available GGUF variants.</div>
+    <div class="form-field"><label for="ggufFile">GGUF quantization / file</label><select id="ggufFile"><option value="">Automatic selection</option></select></div>
+    <div class="form-field"><label for="modelContext">Context window</label><select id="modelContext"><option value="2048">2,048 tokens</option><option value="4096" selected>4,096 tokens</option><option value="8192">8,192 tokens</option><option value="16384">16,384 tokens</option></select></div>
+    <button id="loadModelBtn" class="primary-btn" style="width:100%"><svg><use href="#i-plus"/></svg> Load model</button>
+    <div class="progress-box" aria-live="polite"><strong id="modelStatusText">No model loaded</strong><div id="modelStageText">Choose a model and click Load model.</div><div id="modelErrorText" style="color:#f3999f;margin-top:6px"></div></div>
+    <div class="hint">GGUF models can take time to download and compile. These stages are reported by the backend; download percentage is not currently available.</div>
+  </div>
+  <div class="drawer-footer">Local Colab runtime · Password-protected ngrok tunnel · <a href="/docs" target="_blank" rel="noopener">REST API docs</a></div>
+</aside>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const chatStorageKey = 'colab-ai-bridge-v09-chats';
+  const themeStorageKey = 'colab-ai-bridge-theme';
+  const sampleChatModel = 'Qwen/Qwen2.5-0.5B-Instruct';
+  const sampleImageModel = 'stabilityai/sdxl-turbo';
+  const names = {chat:'Chat', image:'Image generation', img2img:'Image editing', estate:'Real estate cover'};
+  let view = 'chat', activeId = null, chats = [], busyChat = false, serverStatus = null, pollBusy = false, toastTimer;
+  const urls = {image:null, edit:null, estate:null, source:null};
+  let estatePreviewUrls = [];
+  try { chats = JSON.parse(localStorage.getItem(chatStorageKey) || '[]'); if (!Array.isArray(chats)) chats = []; }
+  catch { chats = []; }
+  chats = chats.filter(c => c && typeof c.id === 'string' && Array.isArray(c.messages));
+  try { if (localStorage.getItem(themeStorageKey) === 'light') document.documentElement.dataset.theme = 'light'; } catch {}
+  function icon(name) { const s = document.createElementNS('http://www.w3.org/2000/svg','svg'); const u = document.createElementNS('http://www.w3.org/2000/svg','use'); u.setAttribute('href','#i-'+name); s.append(u); return s; }
+  function notify(text) { $('toast').textContent = text; $('toast').classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(()=>$('toast').classList.remove('show'),3400); }
+  function feedback(id,text,type='') { const el=$(id); el.textContent=text; el.className = 'feedback' + (type?' '+type:''); }
+  function persist() { try { localStorage.setItem(chatStorageKey,JSON.stringify(chats.slice(0,35).map(c=>({...c,messages:c.messages.slice(-80)})))); } catch (err) { if (err && err.name === 'QuotaExceededError') notify('Browser storage is full. Export your chats to keep a copy.'); } }
+  async function request(path, options={}) {
+    const res = await fetch(path,{credentials:'same-origin',cache:'no-store',...options});
+    if (!res.ok) {
+      let detail='HTTP '+res.status; const raw=await res.text();
+      try { const data=JSON.parse(raw); detail= typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail || data); }
+      catch { detail=raw.slice(0,240)||detail; }
+      if (res.status===401) detail='Authentication required. Reopen the page and sign in with your Bridge password.';
+      throw Error(detail);
+    }
+    return (res.headers.get('content-type')||'').includes('image/png') ? res.blob() : res.json();
+  }
+  function openDrawer(){ $('drawerOverlay').classList.add('open'); $('modelDrawer').classList.add('open'); $('modelDrawer').setAttribute('aria-hidden','false'); $('modelId').focus(); }
+  function closeDrawer(){ $('drawerOverlay').classList.remove('open'); $('modelDrawer').classList.remove('open'); $('modelDrawer').setAttribute('aria-hidden','true'); }
+  function closeMobile(){ $('sidebar').classList.remove('mobile-open'); $('mobileScrim').classList.remove('open'); }
+  function navigate(next){
+    view=next; Object.keys(names).forEach(name=>{ $('view-'+name).classList.toggle('active',name===next); document.querySelector('[data-view="'+name+'"]').classList.toggle('active',name===next); });
+    $('viewTitle').textContent=names[next]; closeMobile();
+    if (next==='chat') $('chatInput').focus();
+  }
+  function currentModelKey(){ return serverStatus && serverStatus.status==='ready' && serverStatus.task==='chat' ? `${serverStatus.model_id}|${serverStatus.engine||''}|${serverStatus.gguf_file||''}` : null; }
+  function formatModel(c){ return c && c.modelName ? c.modelName.split('/').pop() : 'unknown model'; }
+  function renderHistory(){
+    const list=$('historyList');list.replaceChildren();
+    if (!chats.length){ const empty=document.createElement('p');empty.className='history-empty';empty.textContent='Your conversations will appear here.';list.append(empty);return; }
+    for (const chat of chats) {
+      const row=document.createElement('div');row.className='conversation'+(chat.id===activeId?' selected':'');
+      const choose=document.createElement('button');choose.textContent=chat.title||'New conversation';choose.title=chat.title||'New conversation';
+      choose.onclick=()=>{activeId=chat.id;navigate('chat');renderChat();renderHistory();};
+      const del=document.createElement('button');del.className='delete';del.title='Delete conversation';del.setAttribute('aria-label','Delete '+(chat.title||'conversation'));del.append(icon('trash'));
+      del.onclick=()=>{if(!confirm('Delete this conversation from this browser?'))return; chats=chats.filter(c=>c.id!==chat.id);if(activeId===chat.id)activeId=null;persist();renderHistory();renderChat();};
+      row.append(choose,del);list.append(row);
+    }
+  }
+  function activeChat(){ return chats.find(c=>c.id===activeId) || null; }
+  function newChat(){ activeId=null;renderHistory();renderChat();navigate('chat');$('chatInput').focus(); }
+  function appendChat(role, content, pending=false){
+    const row=document.createElement('div');row.className='message '+role;
+    const avatar=document.createElement('div');avatar.className='avatar';avatar.textContent=role==='user'?'YOU':'AI';
+    const body=document.createElement('div');body.className='msg-content';
+    if (pending) body.classList.add('typing');
+    else renderText(body,content);
+    row.append(avatar,body);$('messages').append(row);$('chatFeed').scrollTop=$('chatFeed').scrollHeight;
+    return body;
+  }
+  // Render model output as text nodes (not untrusted HTML). Code fences are supported.
+  function renderText(container, raw){
+    container.replaceChildren();const text=String(raw??'');const chunks=text.split(/(```[\s\S]*?```)/g);
+    for (const chunk of chunks){
+      if(chunk.startsWith('```') && chunk.endsWith('```')){
+        const pre=document.createElement('pre'), code=document.createElement('code');
+        const trimmed=chunk.slice(3,-3).replace(/^[^\n]*\n/,'');code.textContent=trimmed;pre.append(code);container.append(pre);
+      } else if(chunk) container.append(document.createTextNode(chunk));
+    }
+  }
+  function renderChat(){
+    const c=activeChat();const hasMessages=!!(c&&c.messages.length);
+    $('welcome').hidden=hasMessages;$('messages').hidden=!hasMessages;$('messages').replaceChildren();
+    if (hasMessages) c.messages.forEach(m=>appendChat(m.role,m.content));
+    const mismatch=c&&c.modelKey&&currentModelKey()&&c.modelKey!==currentModelKey();
+    $('chatWarning').hidden=!mismatch;
+    if (mismatch) $('chatWarning').textContent='This conversation belongs to '+formatModel(c)+'. Load its original model or start a new conversation to avoid mixing contexts.';
+    $('sendBtn').disabled=busyChat || !!mismatch;
+    $('chatFeed').scrollTop=$('chatFeed').scrollHeight;
+  }
+  function newChatId(){ try { return crypto.randomUUID(); } catch { return Date.now()+'-'+Math.random().toString(36).slice(2); } }
+  async function sendChat(){
+    const content=$('chatInput').value.trim();if(!content||busyChat)return;
+    if(!serverStatus||serverStatus.status!=='ready'||serverStatus.task!=='chat') {openDrawer();notify('Load a chat model first.');return;}
+    const key=currentModelKey();let c=activeChat();
+    if(c&&c.modelKey&&c.modelKey!==key){notify('Open a new chat or load the original model.');return;}
+    if(!c){c={id:newChatId(),title:content.slice(0,50),modelName:serverStatus.model_id,modelKey:key,messages:[]};chats.unshift(c);activeId=c.id;}
+    const previous=c.messages.slice(-16).map(m=>({role:m.role,content:m.content}));
+    c.messages.push({role:'user',content});$('chatInput').value='';renderHistory();renderChat();
+    busyChat=true; $('sendBtn').disabled=true;const temp=appendChat('assistant','',true);
+    try{
+      const data=await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:content,history:previous})});
+      const answer=String(data.answer||'(No response)');temp.classList.remove('typing');renderText(temp,answer);
+      c.messages.push({role:'assistant',content:answer});persist();
+    } catch(err){temp.classList.remove('typing');renderText(temp,'Request failed: '+err.message);notify('Chat request failed.');}
+    finally {busyChat=false;renderHistory();renderChat();$('chatInput').focus();}
+  }
+  function setImage(id,placeholderId,downloadId,key,blob){
+    if(urls[key])URL.revokeObjectURL(urls[key]);urls[key]=URL.createObjectURL(blob);
+    $(id).src=urls[key];$(id).hidden=false;$(placeholderId).hidden=true;$(downloadId).href=urls[key];$(downloadId).hidden=false;
+  }
+  async function runImage(){
+    const prompt=$('imagePrompt').value.trim();if(!prompt){feedback('imageFeedback','Write a prompt first.','error');return;}
+    const btn=$('generateImageBtn');btn.disabled=true;feedback('imageFeedback','Generating image…');
+    try{
+      const payload={prompt,width:Number($('imageSize').value),height:Number($('imageSize').value),steps:Number($('imageSteps').value),guidance_scale:Number($('imageGuidance').value)};
+      if($('imageSeed').value.trim())payload.seed=Number($('imageSeed').value);
+      const result=await request('/api/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      setImage('imageResult','imagePlaceholder','imageDownload','image',result);feedback('imageFeedback','Image ready.','success');
+    }catch(err){feedback('imageFeedback',err.message,'error');}finally{btn.disabled=false;}
+  }
+  function wireDropzone(zoneId,inputId,onUpdate){
+    const zone=$(zoneId),input=$(inputId);input.addEventListener('change',onUpdate);
+    zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragging');});
+    zone.addEventListener('dragleave',()=>zone.classList.remove('dragging'));
+    zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragging');if(!e.dataTransfer.files.length)return;input.files=e.dataTransfer.files;onUpdate();});
+  }
+  function updateSource(){const file=$('sourceFile').files[0];if(urls.source)URL.revokeObjectURL(urls.source);urls.source=file?URL.createObjectURL(file):null;$('sourcePreview').hidden=!file;if(file)$('sourcePreview').src=urls.source;}
+  async function runEdit(){
+    const file=$('sourceFile').files[0],prompt=$('editPrompt').value.trim();
+    if(!file||!prompt){feedback('editFeedback','Upload a photo and enter editing instructions.','error');return;}
+    if(file.size>10*1024*1024){feedback('editFeedback','The file exceeds the 10 MB limit.','error');return;}
+    const strength=Number($('editStrength').value),steps=Number($('editSteps').value);
+    if(strength*steps<1){feedback('editFeedback','Steps × strength must be at least 1.','error');return;}
+    const btn=$('editBtn');btn.disabled=true;feedback('editFeedback','Editing image…');
+    try{
+      const form=new FormData();form.append('file',file);form.append('prompt',prompt);
+      form.append('strength',String(strength));form.append('steps',String(steps));form.append('guidance_scale',$('editGuidance').value);
+      form.append('width',$('editSize').value);form.append('height',$('editSize').value);
+      if($('editSeed').value.trim())form.append('seed',$('editSeed').value.trim());
+      const result=await request('/api/image-to-image',{method:'POST',body:form});
+      setImage('editResult','editPlaceholder','editDownload','edit',result);feedback('editFeedback','Edited image ready.','success');
+    }catch(err){feedback('editFeedback',err.message,'error');}finally{btn.disabled=false;}
+  }
+  function updateEstatePhotos(){
+    estatePreviewUrls.forEach(url=>URL.revokeObjectURL(url));estatePreviewUrls=[];
+    const files=[...$('estateFiles').files],items=$('estateThumbnails'),choose=$('estateMain');items.replaceChildren();choose.replaceChildren();
+    files.forEach((file,index)=>{ const url=URL.createObjectURL(file);estatePreviewUrls.push(url);const img=document.createElement('img');img.src=url;img.alt='Property photo '+(index+1);img.className='thumbnail';items.append(img);choose.add(new Option((index+1)+'. '+file.name,String(index)));});
+    items.hidden=files.length===0;feedback('estateFilesInfo',files.length ? files.length+' photo(s) selected.' : 'No photos selected.');
+  }
+  async function runEstate(){
+    const files=[...$('estateFiles').files],prompt=$('estatePrompt').value.trim();
+    if(files.length<3||files.length>6){feedback('estateFeedback','Select 3–6 photos.','error');return;}
+    if(prompt.length<8){feedback('estateFeedback','Describe the property and cover style in your prompt.','error');return;}
+    if(files.some(f=>f.size>12*1024*1024)){feedback('estateFeedback','Each photo must be under 12 MB.','error');return;}
+    const btn=$('estateBtn');btn.disabled=true;feedback('estateFeedback','Designing your listing cover…');
+    try{
+      const form=new FormData();files.forEach(f=>form.append('files',f));form.append('prompt',prompt);
+      form.append('format',$('estateFormat').value);form.append('style',$('estateStyle').value);form.append('main_index',$('estateMain').value||'0');
+      const result=await request('/api/estate-cover',{method:'POST',body:form});
+      setImage('estateResult','estatePlaceholder','estateDownload','estate',result);feedback('estateFeedback','Cover ready to download.','success');
+    }catch(err){feedback('estateFeedback',err.message,'error');}finally{btn.disabled=false;}
+  }
+  function resetGGUF(){const select=$('ggufFile');select.replaceChildren(new Option('Automatic selection',''));feedback('inspectFeedback','Inspect a repository to see available GGUF variants.');}
+  function onTaskChanged(){
+    const task=$('modelTask').value; const id=$('modelId');
+    if(task==='chat'){if(id.value.trim()===''||id.value===sampleImageModel)id.value=sampleChatModel; if($('modelEngine').value==='diffusers')$('modelEngine').value='auto';}
+    else {if(id.value.trim()===''||id.value===sampleChatModel)id.value=sampleImageModel; if($('modelEngine').value!=='auto')$('modelEngine').value='diffusers';}
+    resetGGUF();updateEngineFields();
+  }
+  function updateEngineFields(){
+    const task=$('modelTask').value,eng=$('modelEngine').value;
+    const isGGUF=task==='chat'&&(eng==='auto'||eng==='llama.cpp');
+    $('ggufFile').disabled=!isGGUF;$('modelContext').disabled=!isGGUF;
+  }
+  function sizeLabel(bytes){return bytes==null?'size unknown':(bytes/1e9).toFixed(2)+' GB';}
+  async function inspect(){
+    const model=$('modelId').value.trim();if(!model)return;const btn=$('inspectBtn');btn.disabled=true;feedback('inspectFeedback','Inspecting repository…');
+    try{
+      const d=await request('/api/models/inspect?model_id='+encodeURIComponent(model));resetGGUF();
+      for(const file of d.gguf_files){$('ggufFile').add(new Option(`${file.quant} · ${sizeLabel(file.bytes)} · ${file.name.split('/').pop()}`,file.name));}
+      const formats=[d.gguf_files.length?'GGUF':'',d.has_safetensors?'Safetensors':''].filter(Boolean);
+      feedback('inspectFeedback',`${formats.join(' + ')||'No supported model weights'} · ${d.gguf_files.length} GGUF file(s)`+(d.has_sharded_gguf?' · Sharded GGUF unsupported.':''));
+      if(d.auto_gguf_file && !d.has_safetensors) $('ggufFile').value=d.auto_gguf_file;
+    }catch(err){feedback('inspectFeedback',err.message,'error');}
+    finally{btn.disabled=false;}
+  }
+  function syncStatus(d){
+    serverStatus=d; $('gpuName').textContent=d.gpu||'Unknown GPU';$('vramLabel').textContent=d.vram_free_gb!=null?`${d.vram_free_gb} / ${d.vram_total_gb} GB`:'—';
+    $('headerDot').className='status-dot '+(d.status||'idle');
+    $('modelLabel').textContent=d.status==='ready'?(d.model_id||'Model ready').split('/').pop():d.status==='loading'?'Loading model…':d.status==='error'?'Model error':'No model loaded';
+    $('modelStatusText').textContent=d.status==='ready'?'Model ready':d.status==='loading'?'Loading model…':d.status==='error'?'Load failed':'No model loaded';
+    $('modelStageText').textContent=d.stage||'Choose a model and click Load model.';
+    $('modelErrorText').textContent=d.error||'';
+    $('loadModelBtn').disabled=d.status==='loading';
+    const c=activeChat();if(c&&c.modelKey&&currentModelKey()&&c.modelKey!==currentModelKey()){$('chatWarning').hidden=false;$('chatWarning').textContent='This conversation belongs to '+formatModel(c)+'. Load its original model or start a new conversation.';}else $('chatWarning').hidden=true;
+  }
+  async function refreshStatus(){if(pollBusy)return;pollBusy=true;try{const data=await request('/api/models/status');syncStatus(data);}catch(err){$('modelStatusText').textContent='Bridge connection issue';$('modelStageText').textContent=err.message;}finally{pollBusy=false;}}
+  async function loadModel(){
+    const btn=$('loadModelBtn');btn.disabled=true;feedback('inspectFeedback','Starting model load…');
+    try{
+      await request('/api/models/load',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model_id:$('modelId').value.trim(),task:$('modelTask').value,engine:$('modelEngine').value,gguf_file:$('modelTask').value==='chat'?($('ggufFile').value||null):null,context_size:Number($('modelContext').value)})});
+      await refreshStatus();notify('Loading started. You can track stages here.');
+    }catch(err){feedback('inspectFeedback',err.message,'error');notify('Could not start the model load.');}
+    finally {if(serverStatus?.status!=='loading')btn.disabled=false;}
+  }
+  function exportChats(){
+    if(!chats.length){notify('No chats to export yet.');return;}
+    const blob=new Blob([JSON.stringify({app:'Colab AI Bridge',version:'0.9',exportedAt:new Date().toISOString(),chats},null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='colab-ai-bridge-chats.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  document.querySelectorAll('[data-view]').forEach(btn=>btn.addEventListener('click',()=>navigate(btn.dataset.view)));
+  document.querySelectorAll('[data-prompt]').forEach(btn=>btn.addEventListener('click',()=>{$('chatInput').value=btn.dataset.prompt;$('chatInput').focus();}));
+  $('newChatBtn').addEventListener('click',newChat);$('exportChatsBtn').addEventListener('click',exportChats);
+  $('settingsSide').addEventListener('click',openDrawer);$('modelChip').addEventListener('click',openDrawer);
+  $('closeDrawer').addEventListener('click',closeDrawer);$('drawerOverlay').addEventListener('click',closeDrawer);
+  $('openMenu').addEventListener('click',()=>{$('sidebar').classList.add('mobile-open');$('mobileScrim').classList.add('open');});
+  $('mobileScrim').addEventListener('click',closeMobile);
+  $('themeToggle').addEventListener('click',()=>{const next=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=next;try{localStorage.setItem(themeStorageKey,next);}catch{}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeMobile();}});
+  $('sendBtn').addEventListener('click',sendChat);
+  $('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();sendChat();}});
+  $('generateImageBtn').addEventListener('click',runImage);
+  wireDropzone('sourceDrop','sourceFile',updateSource);
+  $('editStrength').addEventListener('input',()=>{$('editStrengthValue').textContent=Number($('editStrength').value).toFixed(2);});
+  $('editBtn').addEventListener('click',runEdit);
+  wireDropzone('estateDrop','estateFiles',updateEstatePhotos);$('estateBtn').addEventListener('click',runEstate);
+  $('modelId').addEventListener('input',resetGGUF);$('modelTask').addEventListener('change',onTaskChanged);
+  $('modelEngine').addEventListener('change',updateEngineFields);$('inspectBtn').addEventListener('click',inspect);$('loadModelBtn').addEventListener('click',loadModel);
+  renderHistory();renderChat();updateEngineFields();refreshStatus();setInterval(refreshStatus,3500);
+})();
+</script>
+</body>
+</html>
